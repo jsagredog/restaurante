@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Panel de Empleados</title>
+
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+
+<body>
+
+    <header>
+
+        <h1>👨‍🍳 Panel de Empleados</h1>
+
+        <p>Gestión de domicilios y reservas</p>
+
+    </header>
+
+
+    <main>
+
+        <!-- ========================= -->
+        <!-- DOMICILIOS -->
+        <!-- ========================= -->
+
+        <section>
+
+            <div class="titulo-seccion">
+
+                <h2>🛵 Domicilios</h2>
+
+                <button onclick="cargarDomicilios()">
+                    🔄 Actualizar
+                </button>
+
+            </div>
+
+
+            <div id="domiciliosContainer">
+
+                <p class="cargando">
+                    Cargando domicilios...
+                </p>
+
+            </div>
+
+        </section>
+
+
+        <!-- ========================= -->
+        <!-- RESERVAS -->
+        <!-- ========================= -->
+
+        <section>
+
+            <div class="titulo-seccion">
+
+                <h2>📅 Reservas</h2>
+
+                <button onclick="cargarReservas()">
+                    🔄 Actualizar
+                </button>
+
+            </div>
+
+
+            <div id="reservasContainer">
+
+                <p class="cargando">
+                    Cargando reservas...
+                </p>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <footer>
+
+        <p>
+            Sistema de Restaurante © 2026
+        </p>
+
+    </footer>
+
+
+    <script src="script.js"></script>
+
+</body>
+
+</html>
