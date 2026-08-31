@@ -1,17 +1,43 @@
-
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
-import sqlite3
-from datetime import datetime
+from supabase import create_client, Client
+from dotenv import load_dotenv
+import os
 
+
+# =========================
+# CARGAR VARIABLES
+# =========================
+
+load_dotenv()
+
+
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+
+if not SUPABASE_URL or not SUPABASE_KEY:
+    raise RuntimeError(
+        "Faltan SUPABASE_URL o SUPABASE_KEY en el archivo .env"
+    )
+
+
+supabase: Client = create_client(
+    SUPABASE_URL,
+    SUPABASE_KEY
+)
+
+
+# =========================
+# FASTAPI
+# =========================
 
 app = FastAPI(
     title="Sistema de Restaurante",
     description="API para domicilios y reservas",
-    version="1.0.0"
+    version="2.0.0"
 )
 
 
@@ -26,84 +52,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-# =========================
-# BASE DE DATOS
-# =========================
-
-def conectar_db():
-
-    conexion = sqlite3.connect("restaurante.db")
-
-    conexion.row_factory = sqlite3.Row
-
-    return conexion
-
-
-def crear_tablas():
-
-    conexion = conectar_db()
-
-    cursor = conexion.cursor()
-
-    # Tabla de domicilios
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS domicilios (
-
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-            nombre TEXT NOT NULL,
-
-            telefono TEXT NOT NULL,
-
-            direccion TEXT NOT NULL,
-
-            pedido TEXT NOT NULL,
-
-            observaciones TEXT,
-
-            fecha_hora TEXT NOT NULL,
-
-            estado TEXT NOT NULL DEFAULT 'pendiente'
-
-        )
-    """)
-
-
-    # Tabla de reservas
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS reservas (
-
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-            nombre TEXT NOT NULL,
-
-            telefono TEXT NOT NULL,
-
-            fecha TEXT NOT NULL,
-
-            hora TEXT NOT NULL,
-
-            personas INTEGER NOT NULL,
-
-            observaciones TEXT,
-
-            fecha_creacion TEXT NOT NULL,
-
-            estado TEXT NOT NULL DEFAULT 'pendiente'
-
-        )
-    """)
-
-
-    conexion.commit()
-
-    conexion.close()
-
-
-# Crear las tablas cuando inicia el servidor
-crear_tablas()
 
 
 # =========================
@@ -146,7 +94,8 @@ class Reserva(BaseModel):
 def inicio():
 
     return {
-        "mensaje": "Sistema del restaurante funcionando 🚀"
+        "mensaje": "Sistema del restaurante funcionando 🚀",
+        "base_de_datos": "Supabase ☁️"
     }
 
 
@@ -157,73 +106,56 @@ def inicio():
 @app.post("/domicilios")
 def recibir_domicilio(domicilio: Domicilio):
 
-    conexion = conectar_db()
+    try:
 
-    cursor = conexion.cursor()
+        resultado = supabase.table("domicilios").insert({
 
+            "nombre": domicilio.nombre,
 
-    fecha_hora = datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S"
-    )
+            "telefono": domicilio.telefono,
 
+            "direccion": domicilio.direccion,
 
-    cursor.execute("""
-        INSERT INTO domicilios
-        (
-            nombre,
-            telefono,
-            direccion,
-            pedido,
-            observaciones,
-            fecha_hora
-        )
+            "pedido": domicilio.pedido,
 
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, (
+            "observaciones": domicilio.observaciones
 
-        domicilio.nombre,
-
-        domicilio.telefono,
-
-        domicilio.direccion,
-
-        domicilio.pedido,
-
-        domicilio.observaciones,
-
-        fecha_hora
-
-    ))
+        }).execute()
 
 
-    conexion.commit()
-
-    nuevo_id = cursor.lastrowid
-
-    conexion.close()
+        nuevo_domicilio = resultado.data[0]
 
 
-    print("\n🛵 NUEVO DOMICILIO GUARDADO")
-    print("----------------------")
-    print(f"ID: {nuevo_id}")
-    print(f"Cliente: {domicilio.nombre}")
-    print(f"Teléfono: {domicilio.telefono}")
-    print(f"Dirección: {domicilio.direccion}")
-    print(f"Pedido: {domicilio.pedido}")
-    print(f"Observaciones: {domicilio.observaciones}")
-    print(f"Fecha: {fecha_hora}")
-    print("----------------------\n")
+        print("\n🛵 NUEVO DOMICILIO GUARDADO")
+        print("----------------------")
+        print(f"ID: {nuevo_domicilio['id']}")
+        print(f"Cliente: {domicilio.nombre}")
+        print(f"Teléfono: {domicilio.telefono}")
+        print(f"Dirección: {domicilio.direccion}")
+        print(f"Pedido: {domicilio.pedido}")
+        print(f"Observaciones: {domicilio.observaciones}")
+        print("----------------------\n")
 
 
-    return {
+        return {
 
-        "estado": "recibido",
+            "estado": "recibido",
 
-        "mensaje": "Domicilio guardado correctamente",
+            "mensaje": "Domicilio guardado correctamente",
 
-        "id": nuevo_id
+            "id": nuevo_domicilio["id"]
 
-    }
+        }
+
+
+    except Exception as error:
+
+        print("ERROR AL GUARDAR DOMICILIO:", error)
+
+        return {
+            "error": "No se pudo guardar el domicilio",
+            "detalle": str(error)
+        }
 
 
 # =========================
@@ -233,77 +165,61 @@ def recibir_domicilio(domicilio: Domicilio):
 @app.post("/reservas")
 def recibir_reserva(reserva: Reserva):
 
-    conexion = conectar_db()
+    try:
 
-    cursor = conexion.cursor()
+        resultado = supabase.table("reservas").insert({
 
+            "nombre": reserva.nombre,
 
-    fecha_creacion = datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S"
-    )
+            "telefono": reserva.telefono,
 
+            "fecha": reserva.fecha,
 
-    cursor.execute("""
-        INSERT INTO reservas
-        (
-            nombre,
-            telefono,
-            fecha,
-            hora,
-            personas,
-            observaciones,
-            fecha_creacion
-        )
+            "hora": reserva.hora,
 
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (
+            "personas": reserva.personas,
 
-        reserva.nombre,
+            "observaciones": reserva.observaciones
 
-        reserva.telefono,
-
-        reserva.fecha,
-
-        reserva.hora,
-
-        reserva.personas,
-
-        reserva.observaciones,
-
-        fecha_creacion
-
-    ))
+        }).execute()
 
 
-    conexion.commit()
-
-    nuevo_id = cursor.lastrowid
-
-    conexion.close()
+        nueva_reserva = resultado.data[0]
 
 
-    print("\n📅 NUEVA RESERVA GUARDADA")
-    print("----------------------")
-    print(f"ID: {nuevo_id}")
-    print(f"Cliente: {reserva.nombre}")
-    print(f"Teléfono: {reserva.telefono}")
-    print(f"Fecha: {reserva.fecha}")
-    print(f"Hora: {reserva.hora}")
-    print(f"Personas: {reserva.personas}")
-    print(f"Observaciones: {reserva.observaciones}")
-    print(f"Creada: {fecha_creacion}")
-    print("----------------------\n")
+        print("\n📅 NUEVA RESERVA GUARDADA")
+        print("----------------------")
+        print(f"ID: {nueva_reserva['id']}")
+        print(f"Cliente: {reserva.nombre}")
+        print(f"Teléfono: {reserva.telefono}")
+        print(f"Fecha: {reserva.fecha}")
+        print(f"Hora: {reserva.hora}")
+        print(f"Personas: {reserva.personas}")
+        print(f"Observaciones: {reserva.observaciones}")
+        print("----------------------\n")
 
 
-    return {
+        return {
 
-        "estado": "recibida",
+            "estado": "recibida",
 
-        "mensaje": "Reserva guardada correctamente",
+            "mensaje": "Reserva guardada correctamente",
 
-        "id": nuevo_id
+            "id": nueva_reserva["id"]
 
-    }
+        }
+
+
+    except Exception as error:
+
+        print("ERROR AL GUARDAR RESERVA:", error)
+
+        return {
+            "error": "No se pudo guardar la reserva",
+            "detalle": str(error)
+        }
+
+
 # =========================
 # CONSULTAR DOMICILIOS
 # =========================
@@ -311,23 +227,40 @@ def recibir_reserva(reserva: Reserva):
 @app.get("/domicilios")
 def consultar_domicilios():
 
-    conexion = conectar_db()
-    cursor = conexion.cursor()
+    try:
 
-    cursor.execute("""
-        SELECT *
-        FROM domicilios
-        ORDER BY id ASC
-    """)
+        resultado = (
+            supabase
+            .table("domicilios")
+            .select("*")
+            .order("id", desc=False)
+            .execute()
+        )
 
-    domicilios = cursor.fetchall()
 
-    conexion.close()
+        domicilios = resultado.data
 
-    return {
-        "cantidad": len(domicilios),
-        "domicilios": [dict(domicilio) for domicilio in domicilios]
-    }
+
+        return {
+
+            "cantidad": len(domicilios),
+
+            "domicilios": domicilios
+
+        }
+
+
+    except Exception as error:
+
+        print("ERROR AL CONSULTAR DOMICILIOS:", error)
+
+        return {
+
+            "error": "No se pudieron consultar los domicilios",
+
+            "domicilios": []
+
+        }
 
 
 # =========================
@@ -337,97 +270,166 @@ def consultar_domicilios():
 @app.get("/reservas")
 def consultar_reservas():
 
-    conexion = conectar_db()
-    cursor = conexion.cursor()
+    try:
 
-    cursor.execute("""
-        SELECT *
-        FROM reservas
-        ORDER BY fecha ASC, hora ASC
-    """)
+        resultado = (
+            supabase
+            .table("reservas")
+            .select("*")
+            .order("fecha", desc=False)
+            .order("hora", desc=False)
+            .execute()
+        )
 
-    reservas = cursor.fetchall()
 
-    conexion.close()
+        reservas = resultado.data
 
-    return {
-        "cantidad": len(reservas),
-        "reservas": [dict(reserva) for reserva in reservas]
-    }
+
+        return {
+
+            "cantidad": len(reservas),
+
+            "reservas": reservas
+
+        }
+
+
+    except Exception as error:
+
+        print("ERROR AL CONSULTAR RESERVAS:", error)
+
+        return {
+
+            "error": "No se pudieron consultar las reservas",
+
+            "reservas": []
+
+        }
+
+
 # =========================
 # CAMBIAR ESTADO DOMICILIO
 # =========================
 
 @app.put("/domicilios/{domicilio_id}/estado")
-def cambiar_estado_domicilio(domicilio_id: int, estado: str):
+def cambiar_estado_domicilio(
+    domicilio_id: int,
+    estado: str
+):
 
     estados_validos = [
+
         "en cocina",
+
         "esperando domiciliario",
+
         "en camino",
+
         "entregado"
+
     ]
 
+
     if estado not in estados_validos:
+
         return {
+
             "error": "Estado no válido"
+
         }
 
-    conexion = conectar_db()
-    cursor = conexion.cursor()
 
-    cursor.execute("""
-        UPDATE domicilios
-        SET estado = ?
-        WHERE id = ?
-    """, (estado, domicilio_id))
+    try:
 
-    conexion.commit()
+        resultado = (
+            supabase
+            .table("domicilios")
+            .update({
+                "estado": estado
+            })
+            .eq("id", domicilio_id)
+            .execute()
+        )
 
-    filas_modificadas = cursor.rowcount
 
-    conexion.close()
+        if not resultado.data:
 
-    if filas_modificadas == 0:
+            return {
+
+                "error": "Domicilio no encontrado"
+
+            }
+
+
         return {
-            "error": "Domicilio no encontrado"
+
+            "mensaje": "Estado actualizado correctamente",
+
+            "id": domicilio_id,
+
+            "estado": estado
+
         }
 
-    return {
-        "mensaje": "Estado actualizado correctamente",
-        "id": domicilio_id,
-        "estado": estado
-    }
+
+    except Exception as error:
+
+        print("ERROR AL CAMBIAR ESTADO:", error)
+
+        return {
+
+            "error": "No se pudo actualizar el estado"
+
+        }
+
+
 # =========================
-# FINALIZAR / ELIMINAR DOMICILIO
+# FINALIZAR DOMICILIO
 # =========================
 
 @app.delete("/domicilios/{domicilio_id}")
 def eliminar_domicilio(domicilio_id: int):
 
-    conexion = conectar_db()
-    cursor = conexion.cursor()
+    try:
 
-    cursor.execute("""
-        DELETE FROM domicilios
-        WHERE id = ?
-    """, (domicilio_id,))
+        resultado = (
+            supabase
+            .table("domicilios")
+            .delete()
+            .eq("id", domicilio_id)
+            .execute()
+        )
 
-    conexion.commit()
 
-    filas_modificadas = cursor.rowcount
+        if not resultado.data:
 
-    conexion.close()
+            return {
 
-    if filas_modificadas == 0:
+                "error": "Domicilio no encontrado"
+
+            }
+
+
         return {
-            "error": "Domicilio no encontrado"
+
+            "mensaje": "Domicilio finalizado correctamente",
+
+            "id": domicilio_id
+
         }
 
-    return {
-        "mensaje": "Domicilio finalizado correctamente",
-        "id": domicilio_id
-    }
+
+    except Exception as error:
+
+        print("ERROR AL ELIMINAR DOMICILIO:", error)
+
+        return {
+
+            "error": "No se pudo finalizar el domicilio"
+
+        }
+
+
 # =========================
 # FINALIZAR / ELIMINAR RESERVA
 # =========================
@@ -435,26 +437,32 @@ def eliminar_domicilio(domicilio_id: int):
 @app.delete("/reservas/{reserva_id}")
 def eliminar_reserva(reserva_id: int):
 
-    conexion = conectar_db()
-    cursor = conexion.cursor()
+    try:
 
-    cursor.execute("""
-        DELETE FROM reservas
-        WHERE id = ?
-    """, (reserva_id,))
+        resultado = (
+            supabase
+            .table("reservas")
+            .delete()
+            .eq("id", reserva_id)
+            .execute()
+        )
 
-    conexion.commit()
+        if not resultado.data:
 
-    filas_modificadas = cursor.rowcount
+            return {
+                "error": "Reserva no encontrada"
+            }
 
-    conexion.close()
-
-    if filas_modificadas == 0:
         return {
-            "error": "Reserva no encontrada"
+            "mensaje": "Reserva finalizada correctamente",
+            "id": reserva_id
         }
 
-    return {
-        "mensaje": "Reserva finalizada correctamente",
-        "id": reserva_id
-    }
+    except Exception as e:
+
+        print("Error al eliminar reserva:", e)
+
+        return {
+            "error": "No se pudo eliminar la reserva",
+            "detalle": str(e)
+        }
