@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Restaurante</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <header>
+        <h1>🍽️ Restaurante</h1>
+
+        <nav>
+            <a href="#inicio">Inicio</a>
+            <a href="#domicilios">Domicilios</a>
+            <a href="#reservas">Reservas</a>
+        </nav>
+    </header>
+
+
+    <main>
+
+        <!-- INICIO -->
+        <section id="inicio" class="hero">
+
+            <h2>Bienvenido</h2>
+
+            <p>
+                Disfruta nuestros productos y realiza tu pedido
+                o reserva tu mesa.
+            </p>
+
+            <div class="botones">
+
+                <a href="#domicilios">
+                    <button>🛵 Pedir domicilio</button>
+                </a>
+
+                <a href="#reservas">
+                    <button>📅 Reservar mesa</button>
+                </a>
+
+            </div>
+
+        </section>
+
+
+        <!-- DOMICILIOS -->
+        <section id="domicilios">
+
+            <h2>🛵 Pedir domicilio</h2>
+
+            <form id="domicilioForm">
+
+                <label>Nombre</label>
+                <input
+                    type="text"
+                    id="nombreDomicilio"
+                    required
+                >
+
+                <label>Teléfono</label>
+                <input
+                    type="tel"
+                    id="telefonoDomicilio"
+                    required
+                >
+
+                <label>Dirección</label>
+                <input
+                    type="text"
+                    id="direccionDomicilio"
+                    required
+                >
+
+                <label>Pedido</label>
+                <textarea
+                    id="pedidoDomicilio"
+                    placeholder="Ej: 2 hamburguesas, 1 gaseosa..."
+                    required
+                ></textarea>
+
+                <label>Observaciones</label>
+                <textarea
+                    id="observacionesDomicilio"
+                    placeholder="Ej: Sin cebolla..."
+                ></textarea>
+
+                <button type="submit">
+                    🛵 Enviar domicilio
+                </button>
+
+            </form>
+
+        </section>
+
+
+        <!-- RESERVAS -->
+        <section id="reservas">
+
+            <h2>📅 Reservar mesa</h2>
+
+            <form id="reservaForm">
+
+                <label>Nombre</label>
+                <input
+                    type="text"
+                    id="nombreReserva"
+                    required
+                >
+
+                <label>Teléfono</label>
+                <input
+                    type="tel"
+                    id="telefonoReserva"
+                    required
+                >
+
+                <label>Fecha</label>
+                <input
+                    type="date"
+                    id="fechaReserva"
+                    required
+                >
+
+                <label>Hora</label>
+                <input
+                    type="time"
+                    id="horaReserva"
+                    required
+                >
+
+                <label>Número de personas</label>
+                <input
+                    type="number"
+                    id="personasReserva"
+                    min="1"
+                    max="20"
+                    required
+                >
+
+                <label>Observaciones</label>
+                <textarea
+                    id="observacionesReserva"
+                    placeholder="Ej: Celebración de cumpleaños..."
+                ></textarea>
+
+                <button type="submit">
+                    📅 Solicitar reserva
+                </button>
+
+            </form>
+
+        </section>
+
+    </main>
+
+
+    <footer>
+
+        <p>
+            © 2026 Restaurante
+        </p>
+
+    </footer>
+
+
+    <script src="script.js"></script>
+
+</body>
+</html>
