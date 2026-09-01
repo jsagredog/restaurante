@@ -1,9 +1,12 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 from supabase import create_client, Client
 from dotenv import load_dotenv
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from datetime import datetime, timedelta, timezone
+import jwt
 import os
 
 
@@ -16,19 +19,93 @@ load_dotenv()
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-
+LOGIN_USUARIO = os.getenv("LOGIN_USUARIO")
+LOGIN_PASSWORD = os.getenv("LOGIN_PASSWORD")
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     raise RuntimeError(
-        "Faltan SUPABASE_URL o SUPABASE_KEY en el archivo .env"
+        "Faltan SUPABASE_URL o SUPABASE_KEY"
     )
 
+if not LOGIN_USUARIO or not LOGIN_PASSWORD or not SECRET_KEY:
+    raise RuntimeError(
+        "Faltan LOGIN_USUARIO, LOGIN_PASSWORD o SECRET_KEY"
+    )
 
 supabase: Client = create_client(
     SUPABASE_URL,
     SUPABASE_KEY
 )
 
+# =========================
+# SEGURIDAD / LOGIN
+# =========================
+
+ALGORITHM = "HS256"
+
+TOKEN_EXPIRE_MINUTES = 60
+
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="login"
+)
+
+
+def crear_token(usuario: str):
+
+    ahora = datetime.now(timezone.utc)
+
+    expiracion = ahora + timedelta(
+        minutes=TOKEN_EXPIRE_MINUTES
+    )
+
+    datos = {
+        "sub": usuario,
+        "exp": expiracion
+    }
+
+    token = jwt.encode(
+        datos,
+        SECRET_KEY,
+        algorithm=ALGORITHM
+    )
+
+    return token
+
+
+def verificar_token(token: str = Depends(oauth2_scheme)):
+
+    try:
+
+        datos = jwt.decode(
+            token,
+            SECRET_KEY,
+            algorithms=[ALGORITHM]
+        )
+
+        usuario = datos.get("sub")
+
+        if usuario != LOGIN_USUARIO:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token inválido"
+            )
+
+        return usuario
+
+    except jwt.ExpiredSignatureError:
+
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="El token ha expirado"
+        )
+
+    except jwt.InvalidTokenError:
+
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token inválido"
+        )
 
 # =========================
 # FASTAPI
@@ -85,7 +162,33 @@ class Reserva(BaseModel):
 
     observaciones: Optional[str] = ""
 
+# =========================
+# LOGIN
+# =========================
 
+@app.post("/login")
+def login(
+    form_data: OAuth2PasswordRequestForm = Depends()
+):
+
+    if (
+        form_data.username != LOGIN_USUARIO
+        or form_data.password != LOGIN_PASSWORD
+    ):
+
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Usuario o contraseña incorrectos"
+        )
+
+    token = crear_token(
+        form_data.username
+    )
+
+    return {
+        "access_token": token,
+        "token_type": "bearer"
+    }
 # =========================
 # RUTA PRINCIPAL
 # =========================
@@ -225,7 +328,7 @@ def recibir_reserva(reserva: Reserva):
 # =========================
 
 @app.get("/domicilios")
-def consultar_domicilios():
+def consultar_domicilios(usuario: str = Depends(verificar_token)):
 
     try:
 
@@ -268,7 +371,7 @@ def consultar_domicilios():
 # =========================
 
 @app.get("/reservas")
-def consultar_reservas():
+def consultar_reservas(usuario: str = Depends(verificar_token)):
 
     try:
 
@@ -314,7 +417,8 @@ def consultar_reservas():
 @app.put("/domicilios/{domicilio_id}/estado")
 def cambiar_estado_domicilio(
     domicilio_id: int,
-    estado: str
+    estado: str,
+    usuario: str = Depends(verificar_token)
 ):
 
     estados_validos = [
@@ -388,7 +492,7 @@ def cambiar_estado_domicilio(
 # =========================
 
 @app.delete("/domicilios/{domicilio_id}")
-def eliminar_domicilio(domicilio_id: int):
+def eliminar_domicilio(domicilio_id: int, usuario: str = Depends(verificar_token)):
 
     try:
 
@@ -435,7 +539,7 @@ def eliminar_domicilio(domicilio_id: int):
 # =========================
 
 @app.delete("/reservas/{reserva_id}")
-def eliminar_reserva(reserva_id: int):
+def eliminar_reserva(reserva_id: int, usuario: str = Depends(verificar_token)):
 
     try:
 
