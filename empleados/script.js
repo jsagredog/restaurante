@@ -1,8 +1,9 @@
+
 // ==========================================
 // CONFIGURACIÓN
 // ==========================================
 
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = "https://restaurante-backend-4kc1.onrender.com";
 
 
 // ==========================================
@@ -13,6 +14,11 @@ async function cargarDomicilios() {
 
     const container =
         document.getElementById("domiciliosContainer");
+
+    if (!container) {
+        console.error("No existe domiciliosContainer");
+        return;
+    }
 
     container.innerHTML =
         '<p class="cargando">Cargando domicilios...</p>';
@@ -25,9 +31,20 @@ async function cargarDomicilios() {
         const datos =
             await respuesta.json();
 
+
+        // Comprobar errores del servidor
+        if (!respuesta.ok || datos.error) {
+
+            throw new Error(
+                datos.error || "Error al consultar domicilios"
+            );
+        }
+
+
         container.innerHTML = "";
 
-        if (datos.domicilios.length === 0) {
+
+        if (!datos.domicilios || datos.domicilios.length === 0) {
 
             container.innerHTML =
                 '<p class="vacio">No hay domicilios.</p>';
@@ -77,7 +94,7 @@ async function cargarDomicilios() {
 
                 <p class="dato">
                     🕐 <strong>Hora del pedido:</strong>
-                    ${domicilio.fecha_hora}
+                    ${domicilio.fecha_hora || "No disponible"}
                 </p>
 
                 <div class="estado-actual">
@@ -85,7 +102,7 @@ async function cargarDomicilios() {
                     <strong>Estado:</strong>
 
                     <span class="estado">
-                        ${domicilio.estado}
+                        ${domicilio.estado || "pendiente"}
                     </span>
 
                 </div>
@@ -94,20 +111,22 @@ async function cargarDomicilios() {
                 <div class="botones-estado">
 
                     <button
-                     class="btn-cocina"
+                        class="btn-cocina"
                         onclick="cambiarEstado(${domicilio.id}, 'en cocina')">
 
                         👨‍🍳 En cocina
 
                     </button>
 
-                   <button
+
+                    <button
                         class="btn-domiciliario"
                         onclick="cambiarEstado(${domicilio.id}, 'esperando domiciliario')">
 
                         🛵 Esperando domiciliario
 
                     </button>
+
 
                     <button
                         class="btn-camino"
@@ -117,13 +136,15 @@ async function cargarDomicilios() {
 
                     </button>
 
+
                     <button
                         class="btn-entregado"
                         onclick="cambiarEstado(${domicilio.id}, 'entregado')">
 
                         ✅ Entregado
 
-                  </button>
+                    </button>
+
 
                     ${
                         domicilio.estado === "entregado"
@@ -135,10 +156,10 @@ async function cargarDomicilios() {
 
                             🗑️ Finalizar
 
-                     </button>
-                       `
+                        </button>
+                        `
                         :
-                       ""
+                        ""
                     }
 
                 </div>
@@ -153,24 +174,25 @@ async function cargarDomicilios() {
 
     } catch (error) {
 
-        console.error(error);
+        console.error("Error cargando domicilios:", error);
 
         container.innerHTML = `
 
             <p class="vacio">
 
-                ❌ No se pudo conectar
-                con el servidor.
+                ❌ No se pudieron cargar los domicilios.
 
             </p>
 
         `;
+
     }
+
 }
 
 
 // ==========================================
-// CAMBIAR ESTADO
+// CAMBIAR ESTADO DOMICILIO
 // ==========================================
 
 async function cambiarEstado(id, nuevoEstado) {
@@ -188,28 +210,33 @@ async function cambiarEstado(id, nuevoEstado) {
         const datos = await respuesta.json();
 
 
-        if (datos.error) {
+        if (!respuesta.ok || datos.error) {
 
-            alert("❌ " + datos.error);
+            alert(
+                "❌ " +
+                (datos.error || "No se pudo actualizar el estado.")
+            );
 
             return;
         }
 
 
-        // Volver a cargar los domicilios
+        // Actualizar la pantalla
         cargarDomicilios();
 
 
     } catch (error) {
 
-        console.error(error);
+        console.error("Error cambiando estado:", error);
 
         alert(
-            "❌ No se pudo actualizar el estado."
+            "❌ No se pudo conectar con el servidor."
         );
 
     }
+
 }
+
 
 // ==========================================
 // FINALIZAR DOMICILIO
@@ -218,8 +245,9 @@ async function cambiarEstado(id, nuevoEstado) {
 async function finalizarDomicilio(id) {
 
     const confirmar = confirm(
-        "¿Seguro que quieres finalizar este domicilio?"
+        "¿Seguro que quieres finalizar este domicilio?\n\nSe eliminará de la lista."
     );
+
 
     if (!confirmar) {
         return;
@@ -239,28 +267,35 @@ async function finalizarDomicilio(id) {
         const datos = await respuesta.json();
 
 
-        if (datos.error) {
+        if (!respuesta.ok || datos.error) {
 
-            alert("❌ " + datos.error);
+            alert(
+                "❌ " +
+                (datos.error || "No se pudo finalizar el domicilio.")
+            );
 
             return;
         }
 
 
-        // Volver a cargar los domicilios
+        alert("✅ Domicilio finalizado.");
+
+
         cargarDomicilios();
 
 
     } catch (error) {
 
-        console.error(error);
+        console.error("Error finalizando domicilio:", error);
 
         alert(
-            "❌ No se pudo finalizar el domicilio."
+            "❌ No se pudo conectar con el servidor."
         );
 
     }
+
 }
+
 
 // ==========================================
 // RESERVAS
@@ -270,6 +305,12 @@ async function cargarReservas() {
 
     const container =
         document.getElementById("reservasContainer");
+
+
+    if (!container) {
+        console.error("No existe reservasContainer");
+        return;
+    }
 
 
     container.innerHTML =
@@ -286,16 +327,23 @@ async function cargarReservas() {
             await respuesta.json();
 
 
+        if (!respuesta.ok || datos.error) {
+
+            throw new Error(
+                datos.error || "Error al consultar reservas"
+            );
+        }
+
+
         container.innerHTML = "";
 
 
-        if (datos.reservas.length === 0) {
+        if (!datos.reservas || datos.reservas.length === 0) {
 
             container.innerHTML =
                 '<p class="vacio">No hay reservas.</p>';
 
             return;
-
         }
 
 
@@ -345,8 +393,9 @@ async function cargarReservas() {
                 </p>
 
                 <span class="estado">
-                    ${reserva.estado}
+                    ${reserva.estado || "pendiente"}
                 </span>
+
 
                 <div class="botones-reserva">
 
@@ -370,15 +419,14 @@ async function cargarReservas() {
 
     } catch (error) {
 
-        console.error(error);
+        console.error("Error cargando reservas:", error);
 
 
         container.innerHTML = `
 
             <p class="vacio">
 
-                ❌ No se pudo conectar
-                con el servidor.
+                ❌ No se pudieron cargar las reservas.
 
             </p>
 
@@ -387,6 +435,8 @@ async function cargarReservas() {
     }
 
 }
+
+
 // ==========================================
 // FINALIZAR RESERVA
 // ==========================================
@@ -394,8 +444,9 @@ async function cargarReservas() {
 async function finalizarReserva(id) {
 
     const confirmar = confirm(
-        "¿Seguro que quieres finalizar esta reserva?"
+        "¿Seguro que quieres finalizar esta reserva?\n\nSe eliminará de la lista."
     );
+
 
     if (!confirmar) {
         return;
@@ -415,33 +466,57 @@ async function finalizarReserva(id) {
         const datos = await respuesta.json();
 
 
-        if (datos.error) {
+        if (!respuesta.ok || datos.error) {
 
-            alert("❌ " + datos.error);
+            alert(
+                "❌ " +
+                (datos.error || "No se pudo finalizar la reserva.")
+            );
 
             return;
         }
 
 
-        // Volver a cargar las reservas
+        alert("✅ Reserva finalizada.");
+
+
         cargarReservas();
 
 
     } catch (error) {
 
-        console.error(error);
+        console.error("Error finalizando reserva:", error);
 
         alert(
-            "❌ No se pudo finalizar la reserva."
+            "❌ No se pudo conectar con el servidor."
         );
 
     }
+
 }
 
+
 // ==========================================
-// CARGAR AUTOMÁTICAMENTE
+// CARGAR AL INICIAR
 // ==========================================
 
 cargarDomicilios();
 
 cargarReservas();
+
+
+// ==========================================
+// ACTUALIZACIÓN AUTOMÁTICA
+// ==========================================
+
+// Cada 10 segundos revisamos si hay nuevos
+// domicilios o reservas.
+
+setInterval(() => {
+
+    cargarDomicilios();
+
+    cargarReservas();
+
+}, 10000);
+

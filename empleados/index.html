@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 
@@ -16,82 +17,149 @@
 
 <body>
 
-    <header>
+    <!-- ========================= -->
+    <!-- LOGIN -->
+    <!-- ========================= -->
 
-        <h1>👨‍🍳 Panel de Empleados</h1>
+    <div id="loginContainer">
 
-        <p>Gestión de domicilios y reservas</p>
+        <div class="login-box">
 
-    </header>
+            <h1>🍔 Restaurante</h1>
+
+            <h2>🔐 Acceso de empleados</h2>
+
+            <p>Ingresa tus datos para continuar</p>
 
 
-    <main>
+            <form id="loginForm">
 
-        <!-- ========================= -->
-        <!-- DOMICILIOS -->
-        <!-- ========================= -->
+                <label for="usuario">
+                    Usuario
+                </label>
 
-        <section>
+                <input
+                    type="text"
+                    id="usuario"
+                    placeholder="Usuario"
+                    required
+                >
 
-            <div class="titulo-seccion">
 
-                <h2>🛵 Domicilios</h2>
+                <label for="contrasena">
+                    Contraseña
+                </label>
 
-                <button onclick="cargarDomicilios()">
-                    🔄 Actualizar
+                <input
+                    type="password"
+                    id="contrasena"
+                    placeholder="Contraseña"
+                    required
+                >
+
+
+                <button type="submit">
+                    🔓 Ingresar
                 </button>
 
-            </div>
+            </form>
 
 
-            <div id="domiciliosContainer">
+            <p id="loginMensaje"></p>
 
-                <p class="cargando">
-                    Cargando domicilios...
-                </p>
+        </div>
 
-            </div>
-
-        </section>
+    </div>
 
 
-        <!-- ========================= -->
-        <!-- RESERVAS -->
-        <!-- ========================= -->
+    <!-- ========================= -->
+    <!-- PANEL DE EMPLEADOS -->
+    <!-- ========================= -->
 
-        <section>
+    <div id="panelEmpleados" style="display: none;">
 
-            <div class="titulo-seccion">
+        <header>
 
-                <h2>📅 Reservas</h2>
+            <h1>👨‍🍳 Panel de Empleados</h1>
 
-                <button onclick="cargarReservas()">
-                    🔄 Actualizar
-                </button>
+            <p>Gestión de domicilios y reservas</p>
 
-            </div>
+            <button id="cerrarSesion">
+                🔒 Cerrar sesión
+            </button>
 
-
-            <div id="reservasContainer">
-
-                <p class="cargando">
-                    Cargando reservas...
-                </p>
-
-            </div>
-
-        </section>
-
-    </main>
+        </header>
 
 
-    <footer>
+        <main>
 
-        <p>
-            Sistema de Restaurante © 2026
-        </p>
+            <!-- ========================= -->
+            <!-- DOMICILIOS -->
+            <!-- ========================= -->
 
-    </footer>
+            <section>
+
+                <div class="titulo-seccion">
+
+                    <h2>🛵 Domicilios</h2>
+
+                    <button onclick="cargarDomicilios()">
+                        🔄 Actualizar
+                    </button>
+
+                </div>
+
+
+                <div id="domiciliosContainer">
+
+                    <p class="cargando">
+                        Cargando domicilios...
+                    </p>
+
+                </div>
+
+            </section>
+
+
+            <!-- ========================= -->
+            <!-- RESERVAS -->
+            <!-- ========================= -->
+
+            <section>
+
+                <div class="titulo-seccion">
+
+                    <h2>📅 Reservas</h2>
+
+                    <button onclick="cargarReservas()">
+                        🔄 Actualizar
+                    </button>
+
+                </div>
+
+
+                <div id="reservasContainer">
+
+                    <p class="cargando">
+                        Cargando reservas...
+                    </p>
+
+                </div>
+
+            </section>
+
+        </main>
+
+
+        <footer>
+
+            <p>
+                Sistema de Restaurante © 2026
+            </p>
+
+        </footer>
+
+    </div>
 
 
     <script src="script.js"></script>

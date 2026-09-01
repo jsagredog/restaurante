@@ -1,9 +1,10 @@
+
 // ==========================================
 // CONFIGURACIÓN
 // ==========================================
 
-// Dirección de nuestro backend
-const API_URL = "http://127.0.0.1:8000";
+// Dirección del backend online
+const API_URL = "https://restaurante-backend-4kc1.onrender.com";
 
 
 // ==========================================
@@ -16,7 +17,6 @@ domicilioForm.addEventListener("submit", async function(event) {
 
     event.preventDefault();
 
-    // Obtener información del formulario
     const domicilio = {
 
         nombre: document.getElementById("nombreDomicilio").value,
@@ -35,7 +35,6 @@ domicilioForm.addEventListener("submit", async function(event) {
 
     try {
 
-        // Enviar información al backend
         const respuesta = await fetch(`${API_URL}/domicilios`, {
 
             method: "POST",
@@ -51,16 +50,29 @@ domicilioForm.addEventListener("submit", async function(event) {
 
         const datos = await respuesta.json();
 
-        console.log(datos);
+        console.log("Respuesta del servidor:", datos);
+
+
+        // Comprobar si el backend respondió correctamente
+        if (!respuesta.ok || datos.error) {
+
+            alert(
+                "❌ No se pudo enviar el domicilio.\n" +
+                (datos.error || "Error del servidor.")
+            );
+
+            return;
+        }
+
 
         alert("🛵 ¡Domicilio enviado correctamente!");
 
-        // Limpiar formulario
         domicilioForm.reset();
+
 
     } catch (error) {
 
-        console.error(error);
+        console.error("Error:", error);
 
         alert(
             "❌ No se pudo conectar con el servidor."
@@ -82,7 +94,6 @@ reservaForm.addEventListener("submit", async function(event) {
     event.preventDefault();
 
 
-    // Obtener información del formulario
     const reserva = {
 
         nombre:
@@ -110,7 +121,6 @@ reservaForm.addEventListener("submit", async function(event) {
 
     try {
 
-        // Enviar información al backend
         const respuesta = await fetch(`${API_URL}/reservas`, {
 
             method: "POST",
@@ -126,16 +136,29 @@ reservaForm.addEventListener("submit", async function(event) {
 
         const datos = await respuesta.json();
 
-        console.log(datos);
+        console.log("Respuesta del servidor:", datos);
+
+
+        // Comprobar si el backend respondió correctamente
+        if (!respuesta.ok || datos.error) {
+
+            alert(
+                "❌ No se pudo enviar la reserva.\n" +
+                (datos.error || "Error del servidor.")
+            );
+
+            return;
+        }
+
 
         alert("📅 ¡Reserva enviada correctamente!");
 
-        // Limpiar formulario
         reservaForm.reset();
+
 
     } catch (error) {
 
-        console.error(error);
+        console.error("Error:", error);
 
         alert(
             "❌ No se pudo conectar con el servidor."
