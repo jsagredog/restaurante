@@ -11,7 +11,7 @@ const API_URL = "https://restaurante-backend-4kc1.onrender.com";
 
 const loginForm = document.getElementById("loginForm");
 const loginMensaje = document.getElementById("loginMensaje");
-
+const token = localStorage.getItem("token");
 const loginContainer = document.getElementById("loginContainer");
 const panelEmpleados = document.getElementById("panelEmpleados");
 
@@ -59,19 +59,12 @@ loginForm.addEventListener("submit", async function(event) {
         datos.append("password", contrasena);
 
 
-        const respuesta = await fetch(
-            `${API_URL}/login`,
-            {
-                method: "POST",
-
+        const respuesta =
+            await fetch(`${API_URL}/domicilios`, {
                 headers: {
-                    "Content-Type":
-                        "application/x-www-form-urlencoded"
-                },
-
-                body: datos
-            }
-        );
+                    "Authorization": `Bearer ${token}`
+                }
+            });
 
 
         const resultado = await respuesta.json();
@@ -539,10 +532,14 @@ async function cargarReservas() {
 
     try {
 
+        const token = localStorage.getItem("token");
+
         const respuesta =
-            await fetch(`${API_URL}/reservas`);
-
-
+            await fetch(`${API_URL}/reservas`, {
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
         const datos =
             await respuesta.json();
 
