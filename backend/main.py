@@ -23,6 +23,13 @@ LOGIN_USUARIO = os.getenv("LOGIN_USUARIO")
 LOGIN_PASSWORD = os.getenv("LOGIN_PASSWORD")
 SECRET_KEY = os.getenv("SECRET_KEY")
 
+print("ENV CHECK:")
+print("LOGIN_USUARIO:", bool(LOGIN_USUARIO))
+print("LOGIN_PASSWORD:", bool(LOGIN_PASSWORD))
+print("SECRET_KEY:", bool(SECRET_KEY))
+print("SUPABASE_URL:", bool(SUPABASE_URL))
+print("SUPABASE_KEY:", bool(SUPABASE_KEY))
+
 if not SUPABASE_URL or not SUPABASE_KEY:
     raise RuntimeError(
         "Faltan SUPABASE_URL o SUPABASE_KEY"

@@ -6,43 +6,159 @@ const API_URL = "https://restaurante-backend-4kc1.onrender.com";
 
 
 // ==========================================
-// LOGIN
+// ELEMENTOS HTML
 // ==========================================
 
 const loginForm = document.getElementById("loginForm");
 const loginMensaje = document.getElementById("loginMensaje");
-const token = localStorage.getItem("token");
+
 const loginContainer = document.getElementById("loginContainer");
 const panelEmpleados = document.getElementById("panelEmpleados");
 
+const cerrarSesion = document.getElementById("cerrarSesion");
+
 
 // ==========================================
-// COMPROBAR SESIÓN EXISTENTE
+// INICIAR
 // ==========================================
 
-const tokenGuardado = localStorage.getItem("token");
+document.addEventListener("DOMContentLoaded", () => {
 
-if (tokenGuardado) {
+    const token = localStorage.getItem("token");
 
-    mostrarPanel();
+    if (token) {
+        verificarToken();
+    }
+
+});
+
+
+// ==========================================
+// VERIFICAR TOKEN
+// ==========================================
+
+async function verificarToken() {
+
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+        mostrarLogin();
+        return;
+    }
+
+    try {
+
+        const respuesta = await fetch(`${API_URL}/domicilios`, {
+
+            method: "GET",
+
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+
+        });
+
+
+        // TOKEN INVALIDO
+
+        if (respuesta.status === 401) {
+
+            console.warn("Token inválido o expirado.");
+
+            localStorage.removeItem("token");
+
+            mostrarLogin();
+
+            loginMensaje.textContent =
+                "🔐 Tu sesión ha expirado. Inicia sesión nuevamente.";
+
+            return;
+        }
+
+
+        // OTRO ERROR
+
+        if (!respuesta.ok) {
+
+            console.error(
+                "Error verificando sesión:",
+                respuesta.status
+            );
+
+            mostrarLogin();
+
+            return;
+        }
+
+
+        // TOKEN CORRECTO
+
+        mostrarPanel();
+
+    } catch (error) {
+
+        console.error(
+            "Error conectando con el servidor:",
+            error
+        );
+
+        mostrarLogin();
+
+        loginMensaje.textContent =
+            "❌ No se pudo conectar con el servidor.";
+
+    }
 
 }
 
 
 // ==========================================
-// FUNCIÓN LOGIN
+// MOSTRAR LOGIN
+// ==========================================
+
+function mostrarLogin() {
+
+    loginContainer.style.display = "flex";
+
+    panelEmpleados.style.display = "none";
+
+}
+
+
+// ==========================================
+// MOSTRAR PANEL
+// ==========================================
+
+function mostrarPanel() {
+
+    loginContainer.style.display = "none";
+
+    panelEmpleados.style.display = "block";
+
+
+    cargarDomicilios();
+
+    cargarReservas();
+
+}
+
+
+// ==========================================
+// LOGIN
 // ==========================================
 
 loginForm.addEventListener("submit", async function(event) {
 
     event.preventDefault();
 
-    loginMensaje.textContent = "⏳ Iniciando sesión...";
-    loginMensaje.style.color = "";
+
+    loginMensaje.textContent =
+        "⏳ Iniciando sesión...";
 
 
     const usuario =
         document.getElementById("usuario").value.trim();
+
 
     const contrasena =
         document.getElementById("contrasena").value;
@@ -50,24 +166,41 @@ loginForm.addEventListener("submit", async function(event) {
 
     try {
 
-        // OAuth2PasswordRequestForm necesita
-        // application/x-www-form-urlencoded
+        // ==========================================
+        // DATOS DEL LOGIN
+        // ==========================================
 
         const datos = new URLSearchParams();
 
         datos.append("username", usuario);
+
         datos.append("password", contrasena);
 
 
-        const respuesta =
-            await fetch(`${API_URL}/domicilios`, {
+        // ==========================================
+        // PETICIÓN AL BACKEND
+        // ==========================================
+
+        const respuesta = await fetch(
+            `${API_URL}/login`,
+            {
+                method: "POST",
+
                 headers: {
-                    "Authorization": `Bearer ${token}`
-                }
-            });
+                    "Content-Type":
+                        "application/x-www-form-urlencoded"
+                },
+
+                body: datos
+            }
+        );
 
 
-        const resultado = await respuesta.json();
+        const resultado =
+            await respuesta.json();
+
+
+        console.log("Respuesta login:", resultado);
 
 
         // ==========================================
@@ -85,7 +218,7 @@ loginForm.addEventListener("submit", async function(event) {
             }
 
 
-            // Guardar JWT
+            // Guardar token
 
             localStorage.setItem(
                 "token",
@@ -99,7 +232,9 @@ loginForm.addEventListener("submit", async function(event) {
 
             mostrarPanel();
 
+
             return;
+
         }
 
 
@@ -113,6 +248,7 @@ loginForm.addEventListener("submit", async function(event) {
                 resultado.detail ||
                 "Usuario o contraseña incorrectos."
             );
+
 
     } catch (error) {
 
@@ -131,32 +267,8 @@ loginForm.addEventListener("submit", async function(event) {
 
 
 // ==========================================
-// MOSTRAR PANEL
-// ==========================================
-
-function mostrarPanel() {
-
-    loginContainer.style.display = "none";
-
-    panelEmpleados.style.display = "block";
-
-
-    // Cargar información
-
-    cargarDomicilios();
-
-    cargarReservas();
-
-}
-
-
-// ==========================================
 // CERRAR SESIÓN
 // ==========================================
-
-const cerrarSesion =
-    document.getElementById("cerrarSesion");
-
 
 if (cerrarSesion) {
 
@@ -166,9 +278,7 @@ if (cerrarSesion) {
 
             localStorage.removeItem("token");
 
-            loginContainer.style.display = "flex";
-
-            panelEmpleados.style.display = "none";
+            mostrarLogin();
 
             loginForm.reset();
 
@@ -181,36 +291,123 @@ if (cerrarSesion) {
 
 
 // ==========================================
+// OBTENER TOKEN
+// ==========================================
+
+function obtenerToken() {
+
+    return localStorage.getItem("token");
+
+}
+
+
+// ==========================================
+// MANEJAR TOKEN INVALIDO
+// ==========================================
+
+function manejarTokenInvalido() {
+
+    console.warn(
+        "⚠️ El servidor rechazó el token."
+    );
+
+
+    localStorage.removeItem("token");
+
+
+    mostrarLogin();
+
+
+    loginMensaje.textContent =
+        "🔐 Sesión inválida. Inicia sesión nuevamente.";
+
+}
+
+
+// ==========================================
 // DOMICILIOS
 // ==========================================
 
 async function cargarDomicilios() {
 
     const container =
-        document.getElementById("domiciliosContainer");
+        document.getElementById(
+            "domiciliosContainer"
+        );
+
 
     if (!container) {
         return;
     }
 
 
+    const token =
+        obtenerToken();
+
+
+    if (!token) {
+
+        mostrarLogin();
+
+        return;
+
+    }
+
+
     container.innerHTML =
-        '<p class="cargando">Cargando domicilios...</p>';
+        '<p class="cargando">⏳ Cargando domicilios...</p>';
 
 
     try {
 
-        const respuesta =
-            await fetch(`${API_URL}/domicilios`);
+        // ==========================================
+        // CONSULTAR DOMICILIOS
+        // ==========================================
+
+        const respuesta = await fetch(
+            `${API_URL}/domicilios`,
+            {
+                method: "GET",
+
+                headers: {
+                    "Authorization":
+                        `Bearer ${token}`
+                }
+            }
+        );
+
+
+        // ==========================================
+        // TOKEN INVALIDO
+        // ==========================================
+
+        if (respuesta.status === 401) {
+
+            manejarTokenInvalido();
+
+            return;
+
+        }
 
 
         const datos =
             await respuesta.json();
 
 
-        if (!respuesta.ok || datos.error) {
+        console.log(
+            "Domicilios recibidos:",
+            datos
+        );
+
+
+        // ==========================================
+        // ERROR
+        // ==========================================
+
+        if (!respuesta.ok) {
 
             throw new Error(
+                datos.detail ||
                 datos.error ||
                 "Error al consultar domicilios"
             );
@@ -218,28 +415,45 @@ async function cargarDomicilios() {
         }
 
 
+        // ==========================================
+        // COMPATIBILIDAD
+        // ==========================================
+
+        const domicilios =
+            Array.isArray(datos)
+                ? datos
+                : (datos.domicilios || []);
+
+
         container.innerHTML = "";
 
 
-        if (
-            !datos.domicilios ||
-            datos.domicilios.length === 0
-        ) {
+        // ==========================================
+        // SIN DOMICILIOS
+        // ==========================================
+
+        if (domicilios.length === 0) {
 
             container.innerHTML =
                 '<p class="vacio">No hay domicilios.</p>';
 
             return;
+
         }
 
 
-        datos.domicilios.forEach(domicilio => {
+        // ==========================================
+        // MOSTRAR DOMICILIOS
+        // ==========================================
+
+        domicilios.forEach(domicilio => {
 
             const elemento =
                 document.createElement("div");
 
 
-            elemento.className = "pedido";
+            elemento.className =
+                "pedido";
 
 
             elemento.innerHTML = `
@@ -250,22 +464,22 @@ async function cargarDomicilios() {
 
                 <p class="dato">
                     👤 <strong>Cliente:</strong>
-                    ${domicilio.nombre}
+                    ${domicilio.nombre || ""}
                 </p>
 
                 <p class="dato">
                     📞 <strong>Teléfono:</strong>
-                    ${domicilio.telefono}
+                    ${domicilio.telefono || ""}
                 </p>
 
                 <p class="dato">
                     📍 <strong>Dirección:</strong>
-                    ${domicilio.direccion}
+                    ${domicilio.direccion || ""}
                 </p>
 
                 <p class="dato">
                     🍔 <strong>Pedido:</strong>
-                    ${domicilio.pedido}
+                    ${domicilio.pedido || ""}
                 </p>
 
                 <p class="dato">
@@ -293,7 +507,10 @@ async function cargarDomicilios() {
 
                     <button
                         class="btn-cocina"
-                        onclick="cambiarEstado(${domicilio.id}, 'en cocina')">
+                        onclick="cambiarEstado(
+                            ${domicilio.id},
+                            'en cocina'
+                        )">
 
                         👨‍🍳 En cocina
 
@@ -302,7 +519,10 @@ async function cargarDomicilios() {
 
                     <button
                         class="btn-domiciliario"
-                        onclick="cambiarEstado(${domicilio.id}, 'esperando domiciliario')">
+                        onclick="cambiarEstado(
+                            ${domicilio.id},
+                            'esperando domiciliario'
+                        )">
 
                         🛵 Esperando domiciliario
 
@@ -311,7 +531,10 @@ async function cargarDomicilios() {
 
                     <button
                         class="btn-camino"
-                        onclick="cambiarEstado(${domicilio.id}, 'en camino')">
+                        onclick="cambiarEstado(
+                            ${domicilio.id},
+                            'en camino'
+                        )">
 
                         🚴 En camino
 
@@ -320,7 +543,10 @@ async function cargarDomicilios() {
 
                     <button
                         class="btn-entregado"
-                        onclick="cambiarEstado(${domicilio.id}, 'entregado')">
+                        onclick="cambiarEstado(
+                            ${domicilio.id},
+                            'entregado'
+                        )">
 
                         ✅ Entregado
 
@@ -333,7 +559,9 @@ async function cargarDomicilios() {
                         `
                         <button
                             class="btn-finalizar"
-                            onclick="finalizarDomicilio(${domicilio.id})">
+                            onclick="finalizarDomicilio(
+                                ${domicilio.id}
+                            )">
 
                             🗑️ Finalizar
 
@@ -377,48 +605,76 @@ async function cargarDomicilios() {
 
 
 // ==========================================
-// CAMBIAR ESTADO
+// CAMBIAR ESTADO DEL DOMICILIO
 // ==========================================
 
-async function cambiarEstado(id, nuevoEstado) {
+async function cambiarEstado(
+    id,
+    nuevoEstado
+) {
 
     const token =
-        localStorage.getItem("token");
+        obtenerToken();
+
+
+    if (!token) {
+
+        mostrarLogin();
+
+        return;
+
+    }
 
 
     try {
 
-        const respuesta = await fetch(
-            `${API_URL}/domicilios/${id}/estado?estado=${encodeURIComponent(nuevoEstado)}`,
-            {
-                method: "PUT",
+        const respuesta =
+            await fetch(
+                `${API_URL}/domicilios/${id}/estado?estado=${encodeURIComponent(nuevoEstado)}`,
+                {
+                    method: "PUT",
 
-                headers: {
-
-                    "Authorization":
-                        `Bearer ${token}`
-
+                    headers: {
+                        "Authorization":
+                            `Bearer ${token}`
+                    }
                 }
-            }
-        );
+            );
+
+
+        if (respuesta.status === 401) {
+
+            manejarTokenInvalido();
+
+            return;
+
+        }
 
 
         const datos =
             await respuesta.json();
 
 
-        if (!respuesta.ok || datos.error) {
+        if (!respuesta.ok) {
 
             alert(
                 "❌ " +
                 (
+                    datos.detail ||
                     datos.error ||
                     "No se pudo actualizar el estado."
                 )
             );
 
             return;
+
         }
+
+
+        console.log(
+            "Estado actualizado:",
+            datos
+        );
 
 
         cargarDomicilios();
@@ -426,7 +682,11 @@ async function cambiarEstado(id, nuevoEstado) {
 
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "Error cambiando estado:",
+            error
+        );
+
 
         alert(
             "❌ No se pudo conectar con el servidor."
@@ -443,9 +703,10 @@ async function cambiarEstado(id, nuevoEstado) {
 
 async function finalizarDomicilio(id) {
 
-    const confirmar = confirm(
-        "¿Seguro que quieres finalizar este domicilio?\n\nSe eliminará de la lista."
-    );
+    const confirmar =
+        confirm(
+            "¿Seguro que quieres finalizar este domicilio?\n\nSe eliminará de la lista."
+        );
 
 
     if (!confirmar) {
@@ -454,45 +715,66 @@ async function finalizarDomicilio(id) {
 
 
     const token =
-        localStorage.getItem("token");
+        obtenerToken();
+
+
+    if (!token) {
+
+        mostrarLogin();
+
+        return;
+
+    }
 
 
     try {
 
-        const respuesta = await fetch(
-            `${API_URL}/domicilios/${id}`,
-            {
-                method: "DELETE",
+        const respuesta =
+            await fetch(
+                `${API_URL}/domicilios/${id}`,
+                {
+                    method: "DELETE",
 
-                headers: {
-
-                    "Authorization":
-                        `Bearer ${token}`
-
+                    headers: {
+                        "Authorization":
+                            `Bearer ${token}`
+                    }
                 }
-            }
-        );
+            );
+
+
+        if (respuesta.status === 401) {
+
+            manejarTokenInvalido();
+
+            return;
+
+        }
 
 
         const datos =
             await respuesta.json();
 
 
-        if (!respuesta.ok || datos.error) {
+        if (!respuesta.ok) {
 
             alert(
                 "❌ " +
                 (
+                    datos.detail ||
                     datos.error ||
                     "No se pudo finalizar."
                 )
             );
 
             return;
+
         }
 
 
-        alert("✅ Domicilio finalizado.");
+        alert(
+            "✅ Domicilio finalizado."
+        );
 
 
         cargarDomicilios();
@@ -501,6 +783,7 @@ async function finalizarDomicilio(id) {
     } catch (error) {
 
         console.error(error);
+
 
         alert(
             "❌ No se pudo conectar con el servidor."
@@ -518,7 +801,9 @@ async function finalizarDomicilio(id) {
 async function cargarReservas() {
 
     const container =
-        document.getElementById("reservasContainer");
+        document.getElementById(
+            "reservasContainer"
+        );
 
 
     if (!container) {
@@ -526,27 +811,62 @@ async function cargarReservas() {
     }
 
 
+    const token =
+        obtenerToken();
+
+
+    if (!token) {
+
+        mostrarLogin();
+
+        return;
+
+    }
+
+
     container.innerHTML =
-        '<p class="cargando">Cargando reservas...</p>';
+        '<p class="cargando">⏳ Cargando reservas...</p>';
 
 
     try {
 
-        const token = localStorage.getItem("token");
-
         const respuesta =
-            await fetch(`${API_URL}/reservas`, {
-                headers: {
-                    "Authorization": `Bearer ${token}`
+            await fetch(
+                `${API_URL}/reservas`,
+                {
+                    method: "GET",
+
+                    headers: {
+                        "Authorization":
+                            `Bearer ${token}`
+                    }
                 }
-            });
+            );
+
+
+        if (respuesta.status === 401) {
+
+            manejarTokenInvalido();
+
+            return;
+
+        }
+
+
         const datos =
             await respuesta.json();
 
 
-        if (!respuesta.ok || datos.error) {
+        console.log(
+            "Reservas recibidas:",
+            datos
+        );
+
+
+        if (!respuesta.ok) {
 
             throw new Error(
+                datos.detail ||
                 datos.error ||
                 "Error al consultar reservas"
             );
@@ -554,28 +874,33 @@ async function cargarReservas() {
         }
 
 
+        const reservas =
+            Array.isArray(datos)
+                ? datos
+                : (datos.reservas || []);
+
+
         container.innerHTML = "";
 
 
-        if (
-            !datos.reservas ||
-            datos.reservas.length === 0
-        ) {
+        if (reservas.length === 0) {
 
             container.innerHTML =
                 '<p class="vacio">No hay reservas.</p>';
 
             return;
+
         }
 
 
-        datos.reservas.forEach(reserva => {
+        reservas.forEach(reserva => {
 
             const elemento =
                 document.createElement("div");
 
 
-            elemento.className = "reserva";
+            elemento.className =
+                "reserva";
 
 
             elemento.innerHTML = `
@@ -586,27 +911,27 @@ async function cargarReservas() {
 
                 <p class="dato">
                     👤 <strong>Cliente:</strong>
-                    ${reserva.nombre}
+                    ${reserva.nombre || ""}
                 </p>
 
                 <p class="dato">
                     📞 <strong>Teléfono:</strong>
-                    ${reserva.telefono}
+                    ${reserva.telefono || ""}
                 </p>
 
                 <p class="dato">
                     📅 <strong>Fecha:</strong>
-                    ${reserva.fecha}
+                    ${reserva.fecha || ""}
                 </p>
 
                 <p class="dato">
                     🕐 <strong>Hora:</strong>
-                    ${reserva.hora}
+                    ${reserva.hora || ""}
                 </p>
 
                 <p class="dato">
                     👥 <strong>Personas:</strong>
-                    ${reserva.personas}
+                    ${reserva.personas || ""}
                 </p>
 
                 <p class="dato">
@@ -623,7 +948,9 @@ async function cargarReservas() {
 
                     <button
                         class="btn-finalizar-reserva"
-                        onclick="finalizarReserva(${reserva.id})">
+                        onclick="finalizarReserva(
+                            ${reserva.id}
+                        )">
 
                         ✅ Finalizado
 
@@ -641,7 +968,10 @@ async function cargarReservas() {
 
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "Error cargando reservas:",
+            error
+        );
 
 
         container.innerHTML = `
@@ -665,9 +995,10 @@ async function cargarReservas() {
 
 async function finalizarReserva(id) {
 
-    const confirmar = confirm(
-        "¿Seguro que quieres finalizar esta reserva?\n\nSe eliminará de la lista."
-    );
+    const confirmar =
+        confirm(
+            "¿Seguro que quieres finalizar esta reserva?\n\nSe eliminará de la lista."
+        );
 
 
     if (!confirmar) {
@@ -676,46 +1007,66 @@ async function finalizarReserva(id) {
 
 
     const token =
-        localStorage.getItem("token");
+        obtenerToken();
+
+
+    if (!token) {
+
+        mostrarLogin();
+
+        return;
+
+    }
 
 
     try {
 
-        const respuesta = await fetch(
-            `${API_URL}/reservas/${id}`,
-            {
-                method: "DELETE",
+        const respuesta =
+            await fetch(
+                `${API_URL}/reservas/${id}`,
+                {
+                    method: "DELETE",
 
-                headers: {
-
-                    "Authorization":
-                        `Bearer ${token}`
-
+                    headers: {
+                        "Authorization":
+                            `Bearer ${token}`
+                    }
                 }
+            );
 
-            }
-        );
+
+        if (respuesta.status === 401) {
+
+            manejarTokenInvalido();
+
+            return;
+
+        }
 
 
         const datos =
             await respuesta.json();
 
 
-        if (!respuesta.ok || datos.error) {
+        if (!respuesta.ok) {
 
             alert(
                 "❌ " +
                 (
+                    datos.detail ||
                     datos.error ||
                     "No se pudo finalizar la reserva."
                 )
             );
 
             return;
+
         }
 
 
-        alert("✅ Reserva finalizada.");
+        alert(
+            "✅ Reserva finalizada."
+        );
 
 
         cargarReservas();
@@ -723,7 +1074,11 @@ async function finalizarReserva(id) {
 
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "Error finalizando reserva:",
+            error
+        );
+
 
         alert(
             "❌ No se pudo conectar con el servidor."
@@ -740,14 +1095,19 @@ async function finalizarReserva(id) {
 
 setInterval(() => {
 
-    // Solo actualizar si hay sesión
+    const token =
+        localStorage.getItem("token");
 
-    if (localStorage.getItem("token")) {
 
-        cargarDomicilios();
-
-        cargarReservas();
-
+    if (!token) {
+        return;
     }
+
+
+    // Actualizar cada 10 segundos
+
+    cargarDomicilios();
+
+    cargarReservas();
 
 }, 10000);
